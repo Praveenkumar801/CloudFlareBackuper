@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  cloudflare-backuper:
+    build: .
+    container_name: cloudflare-backuper
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    volumes:
+      # Mount your config file
+      - ./config.yml:/app/config.yml:ro
+      # Mount folders you want to backup
+      - /path/to/backup/folder1:/backup/folder1:ro
+      - /path/to/backup/folder2:/backup/folder2:ro
+    command: ["-config", "/app/config.yml"]
+    # For a one-time backup, uncomment the line below:
+    # command: ["-config", "/app/config.yml", "-once"]

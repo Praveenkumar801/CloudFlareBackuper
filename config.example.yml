@@ -1,0 +1,44 @@
+# CloudFlare Backuper Configuration
+
+# CloudFlare R2 Storage Configuration
+cloudflare:
+  uri: "https://your_domain.com"
+  bucket: "your_bucket_name"
+  access_key_id: "your_access_key_id_here"
+  secret_key: "your_secret_access_key_here"
+  account_id: "your_account_id_here"
+
+# Discord Webhook Configuration (optional)
+discord:
+  webhook_url: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+# Telegram Bot Configuration (optional)
+# At least one notification method (Discord or Telegram) must be configured
+telegram:
+  bot_token: "YOUR_BOT_TOKEN"
+  chat_id: "YOUR_CHAT_ID"
+
+# Backup Configuration
+backup:
+  # How often to run backups (cron format)
+  # Examples:
+  #   "0 */6 * * *" - Every 6 hours
+  #   "0 0 * * *"   - Daily at midnight
+  #   "0 2 * * 0"   - Weekly on Sunday at 2 AM
+  schedule: "0 */6 * * *"
+  
+  # Folders to include in the backup
+  # All these folders will be combined into a single archive
+  folders:
+    - "/path/to/folder1"
+    - "/path/to/folder2"
+    - "/path/to/folder3"
+  
+  # Backup file name prefix
+  name_prefix: "backup"
+  
+  # Retention settings (optional)
+  # Number of backups to keep (0 = keep all backups forever)
+  # When set to 5, only the last 5 backups will be kept
+  # Older backups are automatically deleted and notified on Discord
+  retention_limit: 5
