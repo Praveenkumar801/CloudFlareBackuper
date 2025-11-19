@@ -13,16 +13,42 @@ A clean and efficient automated backup system that archives folders, uploads the
 
 ## Installation
 
-### Prerequisites
+### Option 1: Download Pre-built Binary (Recommended)
+
+Download the latest release for your platform from the [Releases page](https://github.com/Praveenkumar801/CloudFlareBackuper/releases):
+
+1. Choose the appropriate binary for your system:
+   - Linux: `cloudflare-backuper-linux-amd64-vX.Y.Z` or `cloudflare-backuper-linux-arm64-vX.Y.Z`
+   - macOS: `cloudflare-backuper-darwin-amd64-vX.Y.Z` or `cloudflare-backuper-darwin-arm64-vX.Y.Z`
+   - Windows: `cloudflare-backuper-windows-amd64-vX.Y.Z.exe` or `cloudflare-backuper-windows-arm64-vX.Y.Z.exe`
+
+2. Make it executable (Linux/macOS):
+   ```bash
+   chmod +x cloudflare-backuper-*
+   ```
+
+3. Optionally verify the checksum:
+   ```bash
+   sha256sum -c cloudflare-backuper-*.sha256
+   ```
+
+4. Check version:
+   ```bash
+   ./cloudflare-backuper-* -version
+   ```
+
+### Option 2: Build from Source
+
+#### Prerequisites
 
 - Go 1.19 or higher
 - CloudFlare R2 storage account with credentials
 - Discord webhook URL and/or Telegram bot (at least one notification method required)
 
-### Build from Source
+#### Build
 
 ```bash
-git clone https://github.com/IndrajeethY/CloudFlareBackuper.git
+git clone https://github.com/Praveenkumar801/CloudFlareBackuper.git
 cd CloudFlareBackuper
 go build -o cloudflare-backuper
 ```
@@ -284,21 +310,45 @@ The project uses GitHub Actions for continuous integration and automated release
   - Builds on Linux, macOS, and Windows
   - Runs tests with race detector
   - Runs linting checks
+
+- **Auto Release Workflow**: Automatically creates releases when VERSION file changes
+  - Detects version changes in commits to main/master branch
+  - Creates git tags automatically (e.g., `v1.0.0`)
+  - Triggers the release build workflow
   
-- **Release Workflow**: Runs on tag push (e.g., `v1.0.0`)
+- **Release Build Workflow**: Builds and publishes binaries
   - Builds binaries for multiple platforms:
     - Linux (amd64, arm64)
     - macOS (amd64, arm64)
     - Windows (amd64, arm64)
+  - Embeds version information in binaries
   - Generates SHA256 checksums for all binaries
   - Creates GitHub release with all assets
+  - Binary names include version: `cloudflare-backuper-platform-vX.Y.Z`
 
-To create a new release:
+#### Creating a Release
+
+**Automated (Recommended)**:
+
+Simply update the VERSION file and push:
+
+```bash
+echo "1.0.1" > VERSION
+git add VERSION
+git commit -m "Release version 1.0.1"
+git push origin main
+```
+
+The release will be created automatically!
+
+**Manual**:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+See [RELEASE.md](RELEASE.md) for detailed release guidelines and semantic versioning information.
 
 ### Memory Optimization
 

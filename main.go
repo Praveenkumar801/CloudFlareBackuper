@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,11 +14,26 @@ import (
 	"github.com/IndrajeethY/CloudFlareBackuper/storage"
 )
 
+var (
+	version   = "dev"
+	commit    = "none"
+	buildDate = "unknown"
+)
+
 func main() {
 
 	configPath := flag.String("config", "config.yml", "Path to configuration file")
 	runOnce := flag.Bool("once", false, "Run backup once and exit")
+	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("CloudFlare Backuper\n")
+		fmt.Printf("Version:    %s\n", version)
+		fmt.Printf("Commit:     %s\n", commit)
+		fmt.Printf("Build Date: %s\n", buildDate)
+		return
+	}
 
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {

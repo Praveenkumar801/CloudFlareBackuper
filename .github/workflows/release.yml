@@ -20,31 +20,33 @@ jobs:
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
-            output: cloudflare-backuper-linux-amd64
+            output_base: cloudflare-backuper-linux-amd64
           - os: ubuntu-latest
             goos: linux
             goarch: arm64
-            output: cloudflare-backuper-linux-arm64
+            output_base: cloudflare-backuper-linux-arm64
           
           # macOS builds
           - os: macos-latest
             goos: darwin
             goarch: amd64
-            output: cloudflare-backuper-darwin-amd64
+            output_base: cloudflare-backuper-darwin-amd64
           - os: macos-latest
             goos: darwin
             goarch: arm64
-            output: cloudflare-backuper-darwin-arm64
+            output_base: cloudflare-backuper-darwin-arm64
           
           # Windows builds
           - os: windows-latest
             goos: windows
             goarch: amd64
-            output: cloudflare-backuper-windows-amd64.exe
+            output_base: cloudflare-backuper-windows-amd64
+            ext: .exe
           - os: windows-latest
             goos: windows
             goarch: arm64
-            output: cloudflare-backuper-windows-arm64.exe
+            output_base: cloudflare-backuper-windows-arm64
+            ext: .exe
 
     steps:
       - name: Checkout code
@@ -55,6 +57,34 @@ jobs:
         with:
           go-version: '1.24.10'
 
+      - name: Extract version from tag
+        id: get_version
+        shell: bash
+        run: |
+          # Get version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          
+          # Get short commit SHA
+          COMMIT=$(git rev-parse --short HEAD)
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "Commit: $COMMIT"
+          
+          # Get build date
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
+          echo "Build Date: $BUILD_DATE"
+
+      - name: Set output filename
+        id: set_output
+        shell: bash
+        run: |
+          EXT="${{ matrix.ext }}"
+          OUTPUT="${{ matrix.output_base }}-v${{ steps.get_version.outputs.version }}${EXT}"
+          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
+          echo "Output filename: $OUTPUT"
+
       - name: Get dependencies
         run: go mod download
 
@@ -63,25 +93,29 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
+        shell: bash
         run: |
-          go build -ldflags="-s -w" -trimpath -o ${{ matrix.output }}
+          LDFLAGS="-s -w"
+          LDFLAGS="$LDFLAGS -X 'main.version=${{ steps.get_version.outputs.version }}'"
+          LDFLAGS="$LDFLAGS -X 'main.commit=${{ steps.get_version.outputs.commit }}'"
+          LDFLAGS="$LDFLAGS -X 'main.buildDate=${{ steps.get_version.outputs.build_date }}'"
+          
+          go build -ldflags="$LDFLAGS" -trimpath -o "${{ steps.set_output.outputs.output }}"
 
       - name: Generate checksums
         shell: bash
         run: |
-          if [[ "${{ matrix.goos }}" == "windows" ]]; then
-            sha256sum ${{ matrix.output }} > ${{ matrix.output }}.sha256
-          else
-            sha256sum ${{ matrix.output }} > ${{ matrix.output }}.sha256
-          fi
+          OUTPUT="${{ steps.set_output.outputs.output }}"
+          sha256sum "$OUTPUT" > "$OUTPUT.sha256"
+          echo "Generated checksum for $OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.output }}
+          name: ${{ steps.set_output.outputs.output }}
           path: |
-            ${{ matrix.output }}
-            ${{ matrix.output }}.sha256
+            ${{ steps.set_output.outputs.output }}
+            ${{ steps.set_output.outputs.output }}.sha256
 
   release:
     name: Create Release
@@ -92,6 +126,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -114,5 +155,45 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+          name: "Release v${{ steps.get_version.outputs.version }}"
+          body: |
+            ## CloudFlare Backuper v${{ steps.get_version.outputs.version }}
+            
+            ### Downloads
+            
+            Choose the appropriate binary for your platform:
+            
+            **Linux**
+            - `cloudflare-backuper-linux-amd64-v${{ steps.get_version.outputs.version }}` - Linux x86_64
+            - `cloudflare-backuper-linux-arm64-v${{ steps.get_version.outputs.version }}` - Linux ARM64
+            
+            **macOS**
+            - `cloudflare-backuper-darwin-amd64-v${{ steps.get_version.outputs.version }}` - macOS Intel
+            - `cloudflare-backuper-darwin-arm64-v${{ steps.get_version.outputs.version }}` - macOS Apple Silicon (M1/M2/M3)
+            
+            **Windows**
+            - `cloudflare-backuper-windows-amd64-v${{ steps.get_version.outputs.version }}.exe` - Windows x86_64
+            - `cloudflare-backuper-windows-arm64-v${{ steps.get_version.outputs.version }}.exe` - Windows ARM64
+            
+            ### Verification
+            
+            SHA256 checksums are provided for each binary (`.sha256` files).
+            
+            To verify on Linux/macOS:
+            ```bash
+            sha256sum -c cloudflare-backuper-*-v${{ steps.get_version.outputs.version }}.sha256
+            ```
+            
+            ### Installation
+            
+            1. Download the appropriate binary for your platform
+            2. Verify the checksum (optional but recommended)
+            3. Make it executable (Linux/macOS): `chmod +x cloudflare-backuper-*`
+            4. Move to a directory in your PATH or run directly
+            
+            Check version: `./cloudflare-backuper-* -version`
+            
+            See the [README](https://github.com/Praveenkumar801/CloudFlareBackuper/blob/master/README.md) for configuration and usage instructions.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
