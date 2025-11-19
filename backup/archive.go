@@ -61,10 +61,12 @@ func addToArchive(tarWriter *tar.Writer, sourcePath string) error {
 			if err != nil {
 				return fmt.Errorf("failed to open file %s: %w", path, err)
 			}
-			defer file.Close()
 
-			if _, err := io.Copy(tarWriter, file); err != nil {
-				return fmt.Errorf("failed to write file content: %w", err)
+			_, copyErr := io.Copy(tarWriter, file)
+			file.Close() // Close immediately after copying, not deferred
+
+			if copyErr != nil {
+				return fmt.Errorf("failed to write file content: %w", copyErr)
 			}
 		}
 

@@ -1,10 +1,8 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -61,17 +59,20 @@ func (r *R2Client) UploadFile(ctx context.Context, filePath string) (string, err
 	}
 	defer file.Close()
 
-	content, err := io.ReadAll(file)
+	// Get file size for Content-Length header
+	fileInfo, err := file.Stat()
 	if err != nil {
-		return "", fmt.Errorf("failed to read file: %w", err)
+		return "", fmt.Errorf("failed to stat file: %w", err)
 	}
 
 	fileName := filepath.Base(filePath)
 
+	// Stream the file directly without loading into memory
 	_, err = r.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(r.bucket),
-		Key:    aws.String(fileName),
-		Body:   bytes.NewReader(content),
+		Bucket:        aws.String(r.bucket),
+		Key:           aws.String(fileName),
+		Body:          file,
+		ContentLength: aws.Int64(fileInfo.Size()),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload to R2: %w", err)
