@@ -240,9 +240,11 @@ The application logs all operations to stdout. To save logs to a file:
 
 ```
 CloudFlareBackuper/
+├── .github/
+│   └── workflows/   # GitHub Actions CI/CD workflows
 ├── backup/          # Archive creation logic
 ├── config/          # Configuration parsing
-├── notification/    # Discord webhook integration
+├── notification/    # Discord and Telegram notification integration
 ├── scheduler/       # Cron scheduling and backup orchestration
 ├── storage/         # CloudFlare R2 client
 ├── main.go          # Application entry point
@@ -256,11 +258,57 @@ CloudFlareBackuper/
 go build -o cloudflare-backuper
 ```
 
+For optimized builds with smaller binaries:
+
+```bash
+go build -ldflags="-s -w" -trimpath -o cloudflare-backuper
+```
+
 ### Testing
 
 ```bash
 go test ./...
 ```
+
+Run tests with race detector:
+
+```bash
+go test -race ./...
+```
+
+### CI/CD
+
+The project uses GitHub Actions for continuous integration and automated releases:
+
+- **CI Workflow**: Runs on every push and pull request
+  - Builds on Linux, macOS, and Windows
+  - Runs tests with race detector
+  - Runs linting checks
+  
+- **Release Workflow**: Runs on tag push (e.g., `v1.0.0`)
+  - Builds binaries for multiple platforms:
+    - Linux (amd64, arm64)
+    - macOS (amd64, arm64)
+    - Windows (amd64, arm64)
+  - Generates SHA256 checksums for all binaries
+  - Creates GitHub release with all assets
+
+To create a new release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Memory Optimization
+
+The application is optimized for efficient memory usage:
+
+- **Streaming Uploads**: Files are streamed directly to R2 storage without loading entirely into memory
+- **Streaming Archive Creation**: Large files are processed using streaming I/O operations
+- **Resource Management**: Files are closed immediately after use to prevent descriptor leaks
+
+This allows the application to handle large backups efficiently without excessive memory consumption.
 
 ## License
 
