@@ -56,7 +56,12 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: go build -v .
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            go build -v -o cloudflare-backuper.exe .
+          else
+            go build -v -o cloudflare-backuper .
+          fi
 
       - name: Verify binary
         shell: bash

@@ -33,6 +33,7 @@ go.work.sum
 
 # Application binary
 cloudflare-backuper
+CloudFlareBackuper
 
 # Config file (keep example)
 config.yml
